@@ -69,11 +69,9 @@ void
 kqueueinit(void)
 {
   initlock(&kq.lock, "kqueue");
-  initlock(&kq.wakeup_lock, "kqueue_wakeup");
   kq.head = 0;
   kq.tail = 0;
   kq.count = 0;
-  kq.wakeup_flag = 0;
 }
 
 // Post an event to the kernel queue
@@ -98,10 +96,7 @@ kqueue_post(const char *event_name, int pid)
   kq.count++;
   
   // Signal any waiting processes
-  acquire(&kq.wakeup_lock);
-  kq.wakeup_flag = 1;
-  wakeup(&kq.wakeup_flag);
-  release(&kq.wakeup_lock);
+  wakeup(&kq);
   
   release(&kq.lock);
 }
@@ -129,14 +124,8 @@ kqueue_wait_internal(struct event *ev)
   
   // Wait until there's an event using sleep/wakeup
   while(kq.count == 0) {
-    release(&kq.lock);
-    
-    // Sleep on wakeup flag, will be awakened when event arrives
-    acquire(&kq.wakeup_lock);
-    sleep(&kq.wakeup_flag, &kq.wakeup_lock);
-    release(&kq.wakeup_lock);
-    
-    acquire(&kq.lock);
+    // Sleep on the main queue lock (proper usage of sleep/wakeup)
+    sleep(&kq, &kq.lock);
   }
   
   // Get event from queue

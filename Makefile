@@ -145,6 +145,7 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_watcher\
 	$U/_eventtest\
+	$U/_printftest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

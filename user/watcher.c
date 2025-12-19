@@ -10,12 +10,12 @@ main(int argc, char *argv[])
   
   printf("Event Watcher Started (PID: %d)\n", getpid());
   printf("Listening for kernel events...\n");
-  printf("=====================================\n");
+  printf("====================================\n");
   printf("Format: [Delta(ms)] [PID] [Event]\n");
-  printf("=====================================\n");
+  printf("====================================\n");
   
   while(1) {
-    // Wait for an event from kernel queue
+    // Wait for an event from kernel queue (blocking)
     if(kqueue_wait(&ev) < 0) {
       printf("Error waiting for event\n");
       break;
@@ -26,15 +26,13 @@ main(int argc, char *argv[])
       first_timestamp = ev.timestamp;
     }
     
-    // Calculate time delta from first event (approximately in ms)
-    // Since we use kernel ticks, divide by ticks per second
-    // For xv6, this is roughly every microsecond
+    // Calculate time delta from first event (in milliseconds)
     uint64 delta_us = (ev.timestamp - first_timestamp);
-    uint64 delta_ms = delta_us / 1000;  // Rough conversion
+    uint64 delta_ms = delta_us / 1000;
     
     // Print the event in a nicely formatted output
-    // Format: [time_delta] [pid] [event_name]
-    printf("[%4lu] [%3d] %-10s\n", delta_ms, ev.pid, ev.name);
+    // Format: [time_delta_ms] [pid] [event_name]
+    printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
   }
   
   exit(0);

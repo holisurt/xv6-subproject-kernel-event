@@ -97,8 +97,6 @@ struct kqueue {
   int head;                    // Next event to read
   int tail;                    // Next event to write
   int count;                   // Number of events in queue
-  struct spinlock wakeup_lock; // Lock for wakeup notification
-  int wakeup_flag;             // Flag to indicate new event available
 };
 
 // Per-process state
