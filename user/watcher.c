@@ -50,14 +50,14 @@ main(int argc, char *argv[])
         printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
         // Small delay (polling loop) to prevent output overlap
         int start = uptime();
-        while(uptime() - start < 1) {  // Wait ~1 tick
+        while(uptime() - start < 2) {  // Wait ~2 ticks (~20ms)
           // busy spin
         }
       } else if(ev.name[0] == 's') {  // sleep
         printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
         // Small delay (polling loop) to prevent output overlap
         int start = uptime();
-        while(uptime() - start < 1) {  // Wait ~1 tick
+        while(uptime() - start < 2) {  // Wait ~2 ticks (~20ms)
           // busy spin
         }
       }
