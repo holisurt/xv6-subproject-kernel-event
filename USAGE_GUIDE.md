@@ -197,9 +197,93 @@ $ cat Makefile
 
 Watcher output will show events from all these.
 
+### Watcher Command-Line Options
+
+#### Option 1: `-i` for Important Events Only
+
+Show only **fork** and **sleep** events (skip write spam):
+
+```bash
+$ watcher -i &
+```
+
+Reduces output clutter for debugging.
+
+#### Option 2: `-o filename` for File Output
+
+Log events to a file instead of console (prevents mixing with other output):
+
+```bash
+$ watcher -i -o events.log &
+$ eventtest
+$ forktest
+$ cat events.log
+```
+
+**Advantages:**
+- Clean console output (no overlap)
+- Can review events later
+- Easy to parse for analysis
+
+#### Option 3: Combine Both
+
+```bash
+$ watcher -i -o events.log &   # Important events only, to file
+$ eventtest                     # Run your commands
+$ cat events.log                # Review captured events
+```
+
+### Output Behavior
+
+**Default** (no flags):
+- Shows ALL events (fork, write, sleep)
+- Very verbose with many write events
+- Output mixes with other commands when run in background
+
+**With `-i`**:
+- Shows only fork and sleep events
+- Much cleaner
+- Still outputs to console
+- 100ms delay between events to reduce mixing
+
+**With `-o file`**:
+- Events logged to file
+- Console stays clean
+- Can combine with `-i` for best result
+
 ---
 
-## V. Testing with eventtest
+## V. Important: Program Naming Convention
+
+### Underscore in Filenames
+
+The source code has programs named with underscores: `_forktest`, `_eventtest`, `_watcher`, etc.
+
+**BUT** in QEMU shell, they are **without underscores**:
+
+| Build File | QEMU Command |
+|------------|-------------|
+| `user/_forktest` | `forktest` |
+| `user/_eventtest` | `eventtest` |
+| `user/_watcher` | `watcher` |
+| `user/_usertests` | `usertests` |
+| `user/_ls` | `ls` |
+
+**Why?** The underscore prefix prevents the host build system from accidentally executing xv6 binaries instead of system binaries.
+
+### Example - Correct Commands
+
+```bash
+$ watcher -i &           # ✅ Correct (no underscore)
+$ eventtest              # ✅ Correct (no underscore)
+$ forktest               # ✅ Correct (no underscore)
+$ _watcher               # ❌ Wrong (will fail)
+$ _eventtest             # ❌ Wrong (will fail)
+```
+
+---
+
+## VI. Testing with eventtest
 
 ### Run Test Program
 
@@ -256,7 +340,7 @@ Hello from test
 
 ---
 
-## VI. Syscalls API
+## VII. Syscalls API
 
 ### 1. kqueue_wait() - Wait for Event
 
