@@ -1,6 +1,35 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
+#include "kernel/fcntl.h"
+
+// Simple utility to write integer to file descriptor
+void
+write_int(int fd, int val)
+{
+  char buf[32];
+  int len = 0;
+  int n = val;
+  
+  if(n == 0) {
+    write(fd, "0", 1);
+    return;
+  }
+  
+  if(n < 0) {
+    write(fd, "-", 1);
+    n = -n;
+  }
+  
+  while(n > 0) {
+    buf[len++] = '0' + (n % 10);
+    n /= 10;
+  }
+  
+  for(int i = len - 1; i >= 0; i--) {
+    write(fd, &buf[i], 1);
+  }
+}
 
 int
 main(int argc, char *argv[])
@@ -8,11 +37,23 @@ main(int argc, char *argv[])
   struct event ev;
   uint64 first_timestamp = 0;
   int filter_mode = 0;  // 0 = all events, 1 = important only (fork, sleep)
+  int outfd = 1;  // Default to stdout
   
-  // Check if user passed argument for filtering
-  if(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i' || argv[1][1] == 'I') {
-      filter_mode = 1;  // Important events only
+  // Parse arguments: -i for important only, -o filename for output file
+  for(int i = 1; i < argc; i++) {
+    if(argv[i][0] == '-') {
+      if(argv[i][1] == 'i' || argv[i][1] == 'I') {
+        filter_mode = 1;
+      } else if(argv[i][1] == 'o' || argv[i][1] == 'O') {
+        if(i + 1 < argc) {
+          outfd = open(argv[i+1], O_CREATE | O_WRONLY);
+          if(outfd < 0) {
+            printf("watcher: could not open %s\n", argv[i+1]);
+            exit(1);
+          }
+          i++;
+        }
+      }
     }
   }
   
@@ -47,14 +88,26 @@ main(int argc, char *argv[])
     if(filter_mode == 1) {
       // Only show fork and sleep events
       if(ev.name[0] == 'f') {  // fork
-        printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
+        write(outfd, "[", 1);
+        write_int(outfd, delta_ms);
+        write(outfd, "] [", 3);
+        write_int(outfd, ev.pid);
+        write(outfd, "] ", 2);
+        write(outfd, ev.name, strlen(ev.name));
+        write(outfd, "\n", 1);
         // Larger delay to prevent output overlap with shell commands
         int start = uptime();
         while(uptime() - start < 10) {  // Wait ~10 ticks (~100ms)
           // busy spin
         }
       } else if(ev.name[0] == 's') {  // sleep
-        printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
+        write(outfd, "[", 1);
+        write_int(outfd, delta_ms);
+        write(outfd, "] [", 3);
+        write_int(outfd, ev.pid);
+        write(outfd, "] ", 2);
+        write(outfd, ev.name, strlen(ev.name));
+        write(outfd, "\n", 1);
         // Larger delay to prevent output overlap with shell commands
         int start = uptime();
         while(uptime() - start < 10) {  // Wait ~10 ticks (~100ms)
