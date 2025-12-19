@@ -48,8 +48,18 @@ main(int argc, char *argv[])
       // Only show fork and sleep events
       if(ev.name[0] == 'f') {  // fork
         printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
+        // Small delay (polling loop) to prevent output overlap
+        int start = uptime();
+        while(uptime() - start < 1) {  // Wait ~1 tick
+          // busy spin
+        }
       } else if(ev.name[0] == 's') {  // sleep
         printf("[%lu] [%d] %s\n", delta_ms, ev.pid, ev.name);
+        // Small delay (polling loop) to prevent output overlap
+        int start = uptime();
+        while(uptime() - start < 1) {  // Wait ~1 tick
+          // busy spin
+        }
       }
       // Skip write events and others
     } else {
