@@ -83,6 +83,11 @@ sys_pause(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+  
+  // Post sleep event to kernel queue
+  extern void kqueue_post(const char *, int);
+  kqueue_post("sleep", myproc()->pid);
+  
   return 0;
 }
 
