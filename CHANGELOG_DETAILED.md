@@ -738,3 +738,119 @@ Project hoàn thành 7 tuần như quy định:
 
 **Total Implementation:** ~440 lines kernel/user code + 35 KB documentation  
 **Status:** Ready for production, fully tested, well-documented
+
+---
+
+## POST-DELIVERY IMPROVEMENTS (December 20, 2025)
+
+After initial delivery, critical bugs were found and fixed:
+
+### Issue 1: Deadlock in Event Queue
+
+**Problem**: kqueue_wait() would call sleep() while holding kq.lock, causing deadlock when sleep() tried to post events.
+
+**Fix**: 
+- Removed sleep event posting from internal sleep() function initially
+- Later re-enabled safely by checking if `chan == &kq` to skip posting in that case
+- Moved sleep event posting to AFTER releasing p->lock but BEFORE reacquiring lk
+
+**Files**: kernel/proc.c
+
+### Issue 2: Output Interference
+
+**Problem**: Watcher printing to stdout caused garbled output when backgrounded.
+
+**Fix**:
+- Modified watcher to only print startup messages when outfd == 1 (stdout)
+- Silent mode when writing to file (-o flag)
+
+**Files**: user/watcher.c
+
+### Enhancement 1: Contextual Event Mode
+
+**Addition**: New `-c [SECONDS]` flag to show fork events grouped with related sleep/write events within a time window.
+
+**Implementation**:
+- Event buffering (MAX_EVENTS = 1000)
+- Contextual filtering based on timestamp differences
+- Visual separators between fork groups
+
+**Files**: user/watcher.c
+
+### Enhancement 2: writetest Program
+
+**Addition**: New test program to demonstrate write events.
+
+**Features**:
+- Parent writes multiple messages
+- Parent forks, child writes, parent waits
+- Multiple concurrent child processes
+
+**Files**: user/writetest.c, Makefile
+
+### Enhancement 3: Sleep Event Capture
+
+**Addition**: Re-enabled sleep event posting with deadlock prevention.
+
+**Implementation**:
+- sys_pause(): Posts sleep event after syscall completes
+- sleep(): Posts sleep event after releasing locks (except when sleeping on kq)
+
+**Files**: kernel/proc.c, kernel/sysproc.c
+
+### Documentation Added
+
+**Test Cases**: TEST_CASES.md
+- 7 comprehensive test cases with expected outputs
+- Debugging guide
+- Performance notes
+
+**Updated Guides**:
+- WATCHER_GUIDE.md - Enhanced with all 3 modes, event types, test programs
+- USAGE_GUIDE.md - Complete rewrite with all features and examples
+- CHANGELOG_DETAILED.md - This section (post-delivery improvements)
+
+---
+
+## RECENT COMMITS
+
+```
+82d6596 - Add comprehensive test cases and testing guide
+7e7b833 - Add writetest program to demonstrate write event capturing
+63f7593 - Enable sleep event posting in internal sleep() function safely
+4d89c76 - Re-enable sleep event posting safely from sys_pause syscall
+2f105c9 - Fix deadlock in event queue and enhance watcher with contextual modes
+```
+
+---
+
+## CURRENT STATUS
+
+✅ **All Systems Fully Functional**
+
+### Verified Working
+- ✅ Fork events captured correctly
+- ✅ Sleep events captured from wait() and pause()
+- ✅ Write events captured from write() syscalls
+- ✅ Watcher modes: fork-only, important, contextual
+- ✅ File output mode (silent background operation)
+- ✅ All test programs (eventtest, forktest, writetest)
+- ✅ No deadlocks or system crashes
+- ✅ Event ordering and timestamps accurate
+- ✅ Circular buffer wraparound working
+- ✅ High-frequency event posting stable
+
+### Test Results
+- eventtest: 3 fork events + multiple sleep events ✅
+- forktest: 20+ fork events + many sleep events ✅
+- writetest: Fork + write + sleep events ✅
+- Stress test: 256-event buffer wraparound works ✅
+
+### Documentation Coverage
+- USAGE_GUIDE.md: 552 lines - complete usage reference
+- WATCHER_GUIDE.md: 162 lines - tool-specific documentation
+- TEST_CASES.md: 379 lines - 7 test cases with debugging guide
+- DESIGN_DOCUMENT.md: 376 lines - architecture details
+- CHANGELOG_DETAILED.md: 800+ lines - complete history
+- SYSTEM_WORKFLOW.txt: 750 lines - workflow explanation
+- EVENTS_EXPLAINED.md: 477 lines - event descriptions

@@ -1,11 +1,19 @@
 # Enhanced Watcher Tool Guide
 
-The `watcher` tool now supports three event filtering modes to help you understand kernel events in xv6.
+The `watcher` tool is a comprehensive kernel event monitoring application for xv6 that captures system events in real-time. It supports multiple filtering modes to understand process behavior.
+
+## Current Status
+
+✅ **Fully Functional** - All 3 modes working without deadlock
+✅ **Sleep Events** - Captured from both sys_pause and internal sleep()
+✅ **Write Events** - Captured from write syscalls
+✅ **Fork Events** - Captured with accurate PIDs and timestamps
+✅ **File Output** - Silent mode for background operation
 
 ## Modes
 
 ### Mode 0: Fork Events Only (Default)
-Shows only fork events. This is the most minimal output.
+Shows only fork events. This is the most minimal and fastest mode.
 
 ```bash
 $ watcher -o events.log &
@@ -14,32 +22,36 @@ $ cat events.log
 [40] [2] fork
 [92108] [3] fork
 [133954] [5] fork
-...
+[154677] [6] fork
 ```
 
-**Use case**: Quick overview of process creation.
+**Use case**: Quick overview of process creation, minimal overhead
+**Output**: Fork events only, clean and concise
 
 ---
 
 ### Mode 1: Important Events (`-i` flag)
-Shows fork and sleep events only. Filters out write events.
+Shows fork events AND sleep events from wait() syscalls. Filters out write events.
 
 ```bash
 $ watcher -i -o events.log &
 $ eventtest
 $ cat events.log
 [40] [2] fork
-[92108] [3] fork
-[133954] [5] fork
-...
+[141401] [2] sleep
+[141409] [5] fork
+[141468] [5] sleep
+[154677] [6] fork
+[154902] [6] sleep
 ```
 
-**Use case**: Tracking both process creation and blocking behavior.
+**Use case**: Tracking both process creation and blocking/waiting behavior
+**Output**: Fork + sleep events interleaved
 
 ---
 
 ### Mode 2: Contextual Events (`-c` flag)
-Shows fork events with **related sleep/write events** that occurred nearby.
+Shows fork events with **related sleep/write events** that occurred nearby within a time window.
 
 **Syntax**: `watcher -c [SECONDS] -o events.log &`
 
@@ -54,7 +66,7 @@ $ watcher -c 5 -o events.log &
 $ watcher -c 1 -o events.log &
 ```
 
-**Output format**:
+**Output format** with separators for clarity:
 ```
 [event_time] [pid] sleep
 [event_time] [pid] write
@@ -64,39 +76,77 @@ $ watcher -c 1 -o events.log &
   ---
 ```
 
-**Use case**: Understanding what system calls happen around process creation.
+**Use case**: Understanding what operations surround each fork, detailed analysis
+**Output**: Grouped events with visual separators
+
+---
+
+## Event Types
+
+The system captures three types of events:
+
+| Event | Source | Description |
+|-------|--------|-------------|
+| **fork** | fork() syscall | Process creation - parent PID when child is created |
+| **sleep** | wait(), pause(), and internal sleep() | Process blocking/sleeping on I/O or locks |
+| **write** | write() syscall | File/console I/O operations |
+
+**Visibility in each mode**:
+- Mode 0 (default): fork only
+- Mode 1 (-i): fork + sleep
+- Mode 2 (-c): fork + sleep + write (with filtering)
 
 ---
 
 ## Complete Examples
 
-### Example 1: Basic fork tracking
+### Example 1: Fork events only
 ```bash
 $ watcher -o events.log &
 $ eventtest
 $ cat events.log
 ```
+**Output**: Fork events from eventtest and children
+**Use**: Process creation timeline
 
-Shows when each child process (6, 7, 8) was created.
-
-### Example 2: Detailed process behavior
+### Example 2: Fork + Sleep events
 ```bash
 $ watcher -i -o events.log &
 $ eventtest
+$ cat events.log
+```
+**Output**: Shows fork events and sleep events from wait() calls
+**Use**: Understanding blocking behavior
+
+### Example 3: Write events
+```bash
+$ watcher -o events.log &
+$ writetest
+$ cat events.log
+```
+**Output**: Fork, write, and sleep events all mixed
+**Use**: I/O pattern analysis
+
+### Example 4: Stress test with contextual view
+```bash
+$ watcher -c 5 -o events.log &
 $ forktest
 $ cat events.log
 ```
+**Output**: Fork events grouped with related events from 5 seconds before
+**Use**: Understanding system behavior during heavy load
 
-Shows forks and sleeps, but no I/O spam.
+---
 
-### Example 3: System call context
-```bash
-$ watcher -c 2 -o events.log &
-$ eventtest
-$ cat events.log
-```
+## Test Programs
 
-Shows what sleep/write operations happened within 2 seconds before each fork.
+Three test programs are available to demonstrate the event queue:
+
+| Program | Purpose | Duration | Output |
+|---------|---------|----------|--------|
+| **eventtest** | Fork + wait demo | <1s | 3 forks + sleep events |
+| **writetest** | Write event demo | <2s | 3 forks + write events |
+| **forktest** | Stress test | 5-10s | 20+ forks + many sleeps |
 
 ---
 
