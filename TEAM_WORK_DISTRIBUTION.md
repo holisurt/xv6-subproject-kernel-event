@@ -37,6 +37,9 @@ The xv6 Kernel Event Queue System was developed as a two-person collaborative pr
 | **Fork Event Posting** | kernel/proc.c | 10-15 | ✅ Complete | Week 4 |
 | **Sleep Event Posting** | kernel/proc.c, kernel/sysproc.c | 20-30 | ✅ Complete | Week 5 |
 | **Write Event Posting** | kernel/sysfile.c | 10-15 | ✅ Complete | Week 6 |
+| **eventtest Program** | user/eventtest.c | 28 | ✅ Complete | Week 4 |
+| **forktest Program** | user/forktest.c | 45 | ✅ Complete | Week 5 |
+| **writetest Program** | user/writetest.c | 56 | ✅ Complete | Week 6 |
 | **Deadlock Prevention** | kernel/proc.c, kernel/sysproc.c | 15-25 | ✅ Complete | Week 7 |
 | **Performance Optimization** | kernel/proc.c | 10-20 | ✅ Complete | Week 7 |
 | **Documentation - Design** | DESIGN_DOCUMENT.md | 376 | ✅ Complete | Post-Delivery |
@@ -59,6 +62,11 @@ struct event kq.events[NEVENT];
 - fork()              // Post fork events
 - sleep()             // Post sleep events (with deadlock check)
 - sys_pause()         // Post sleep events from syscall
+
+// Test programs:
+- eventtest.c         // Create fork events for testing
+- forktest.c          // Stress test with high-frequency forking
+- writetest.c         // Demonstrate write events
 ```
 
 **kernel/sysproc.c** (~20 lines):
@@ -104,9 +112,6 @@ struct event kq.events[NEVENT];
 | **Watcher Tool - Mode 1** | user/watcher.c | 40-60 | ✅ Complete | Week 5 |
 | **Watcher Tool - Mode 2** | user/watcher.c | 30-50 | ✅ Complete | Week 6 |
 | **Watcher Tool - Features** | user/watcher.c | 20-30 | ✅ Complete | Week 6 |
-| **eventtest Program** | user/eventtest.c | 28 | ✅ Complete | Week 4 |
-| **forktest Program** | user/forktest.c | 45 | ✅ Complete | Week 5 |
-| **writetest Program** | user/writetest.c | 56 | ✅ Complete | Week 6 |
 | **Test Framework** | TEST_CASES.md | 379 | ✅ Complete | Post-Delivery |
 | **Documentation - Usage** | USAGE_GUIDE.md | 552 | ✅ Complete | Post-Delivery |
 | **Documentation - Watcher** | WATCHER_GUIDE.md | 162 | ✅ Complete | Post-Delivery |
@@ -130,42 +135,14 @@ Key functions:
 - Silent mode for file output
 ```
 
-**user/eventtest.c** (28 lines):
-```c
-// Create fork events for testing
-- 3 child processes
-- Wait syscalls to create sleep events
-- Simple, deterministic behavior
-```
+### Test Contributions
 
-**user/forktest.c** (45 lines):
-```c
-// Stress test with high-frequency forking
-- 20+ rapid fork operations
-- Tests circular buffer wraparound
-- Validates system stability under load
-```
-
-**user/writetest.c** (56 lines):
-```c
-// Demonstrate write events
-- Parent process writes
-- Parent-child fork with writes
-- Multiple children writing concurrently
-- Tests write event posting
-```
-
-#### Testing Contributions
-
-| Test Case | Lines | Coverage | Status |
-|-----------|-------|----------|--------|
-| Test 1: Basic Fork Events | 20 | Fork capture accuracy | ✅ Pass |
-| Test 2: Sleep Events | 20 | Sleep event posting | ✅ Pass |
-| Test 3: Write Events | 20 | Write event capture | ✅ Pass |
-| Test 4: Stress Test | 20 | Circular buffer wraparound | ✅ Pass |
-| Test 5: Contextual Mode | 20 | Event buffering & filtering | ✅ Pass |
-| Test 6: Rapid Forks | 20 | High-frequency events | ✅ Pass |
-| Test 7: Buffer Wraparound | 20 | 256-event limit handling | ✅ Pass |
+| Test Program | Lines | Purpose | Developer |
+|--------------|-------|---------|-----------|
+| eventtest.c | 28 | Create fork events for testing | Dev 1 |
+| forktest.c | 45 | Stress test with high-frequency forking | Dev 1 |
+| writetest.c | 56 | Demonstrate write events | Dev 1 |
+| TEST_CASES.md | 379 | 7 comprehensive test cases and guide | Both (Dev 1 creates programs, Dev 2 documents) |
 
 #### Documentation Contributions
 
@@ -208,18 +185,18 @@ Key functions:
 - **Sync**: End-to-end testing
 
 ### Week 4: Event Posting
-- **Developer 1**: Fork event posting
-- **Developer 2**: eventtest program
+- **Developer 1**: Fork event posting + eventtest program
+- **Developer 2**: Watcher mode 0 (fork-only)
 - **Sync**: Validate fork event capture
 
 ### Week 5: Sleep Events
-- **Developer 1**: Sleep event posting (with deadlock debugging)
-- **Developer 2**: forktest program, Mode 1 watcher
+- **Developer 1**: Sleep event posting + forktest program (with deadlock debugging)
+- **Developer 2**: Mode 1 watcher (fork + sleep)
 - **Sync**: Debug deadlock issues, fix together
 
 ### Week 6: Write Events & Modes
-- **Developer 1**: Write event posting
-- **Developer 2**: writetest program, Mode 2 watcher
+- **Developer 1**: Write event posting + writetest program
+- **Developer 2**: Mode 2 watcher (contextual mode)
 - **Sync**: Comprehensive testing
 
 ### Week 7: Optimization & Documentation
@@ -271,14 +248,14 @@ Developer 1 (Kernel):
   - kernel/proc.c:       ~150 lines (event queue, syscalls)
   - kernel/sysproc.c:    ~20 lines (sys_pause enhancement)
   - kernel/sysfile.c:    ~15 lines (write event posting)
-  Total: ~185 lines of kernel code
-
-Developer 2 (User-Space & Tools):
-  - user/watcher.c:      ~195 lines (tool implementation)
   - user/eventtest.c:    ~28 lines (test program)
   - user/forktest.c:     ~45 lines (stress test)
   - user/writetest.c:    ~56 lines (write test)
-  Total: ~324 lines of user-space code
+  Total: ~314 lines of kernel + test code
+
+Developer 2 (User-Space Tool):
+  - user/watcher.c:      ~195 lines (tool implementation)
+  Total: ~195 lines of watcher code
 ```
 
 ### Documentation Contributions
@@ -287,16 +264,15 @@ Developer 2 (User-Space & Tools):
 Developer 1:
   - DESIGN_DOCUMENT.md:  376 lines (architecture)
   - EVENTQUEUE_README.md: 317 lines (event queue details)
+  - Test coverage documentation
   - Commit messages with technical details
   Total: ~700 lines of technical documentation
 
 Developer 2:
   - USAGE_GUIDE.md:      552 lines (user reference)
   - WATCHER_GUIDE.md:    162 lines (tool guide)
-  - TEST_CASES.md:       379 lines (test documentation)
-  - EVENTS_EXPLAINED.md: 477 lines (event guide)
-  - Documentation examples and troubleshooting
-  Total: ~1,570 lines of user documentation
+  - Documentation examples and best practices
+  Total: ~714 lines of user documentation
 
 Combined Documentation: 4,000+ lines
 ```
