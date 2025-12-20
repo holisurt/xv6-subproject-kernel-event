@@ -656,9 +656,6 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
   
-  // Post sleep event to kernel queue
-  kqueue_post("sleep", p->pid);
-
   sched();
 
   // Tidy up.
