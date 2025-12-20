@@ -663,6 +663,13 @@ sleep(void *chan, struct spinlock *lk)
 
   // Reacquire original lock.
   release(&p->lock);
+  
+  // Post sleep event BEFORE reacquiring lock, but only if we're not sleeping on kq
+  // to prevent deadlock when kqueue_wait sleeps on the kqueue lock
+  if(chan != &kq) {
+    kqueue_post("sleep", p->pid);
+  }
+  
   acquire(lk);
 }
 
